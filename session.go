@@ -812,7 +812,13 @@ func (s *session) handleHandshakeConfirmed() {
 	s.sentPacketHandler.SetHandshakeConfirmed()
 	s.cryptoStreamHandler.SetHandshakeConfirmed()
 
-	if !s.config.DisablePathMTUDiscovery {
+	if s.config.FixedMTU != 0 {
+
+		byteCount := protocol.ByteCount(s.config.FixedMTU)
+
+		s.sentPacketHandler.SetMaxDatagramSize(byteCount)
+		s.packer.SetMaxPacketSize(byteCount)
+	} else if !s.config.DisablePathMTUDiscovery {
 		maxPacketSize := s.peerParams.MaxUDPPayloadSize
 		if maxPacketSize == 0 {
 			maxPacketSize = protocol.MaxByteCount
