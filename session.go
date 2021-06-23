@@ -748,7 +748,7 @@ func (s *session) maybeResetTimer() {
 			deadline = s.idleTimeoutStartTime().Add(s.idleTimeout)
 		}
 	}
-	if s.handshakeConfirmed && !s.config.DisablePathMTUDiscovery {
+	if s.handshakeConfirmed && !s.config.DisablePathMTUDiscovery && s.config.FixedMTU == 0 {
 		if probeTime := s.mtuDiscoverer.NextProbeTime(); !probeTime.IsZero() {
 			deadline = utils.MinTime(deadline, probeTime)
 		}
@@ -818,6 +818,9 @@ func (s *session) handleHandshakeConfirmed() {
 
 		s.sentPacketHandler.SetMaxDatagramSize(byteCount)
 		s.packer.SetMaxPacketSize(byteCount)
+
+		fmt.Printf("byteCount=%v\n", byteCount)
+
 	} else if !s.config.DisablePathMTUDiscovery {
 		maxPacketSize := s.peerParams.MaxUDPPayloadSize
 		if maxPacketSize == 0 {
@@ -1772,7 +1775,7 @@ func (s *session) sendPacket() (bool, error) {
 		s.sendQueue.Send(packet.buffer)
 		return true, nil
 	}
-	if !s.config.DisablePathMTUDiscovery && s.mtuDiscoverer.ShouldSendProbe(now) {
+	if s.config.FixedMTU == 0 && !s.config.DisablePathMTUDiscovery && s.mtuDiscoverer.ShouldSendProbe(now) {
 		packet, err := s.packer.PackMTUProbePacket(s.mtuDiscoverer.GetPing())
 		if err != nil {
 			return false, err
